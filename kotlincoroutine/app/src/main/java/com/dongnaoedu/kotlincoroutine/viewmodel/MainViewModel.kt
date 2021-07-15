@@ -21,6 +21,7 @@ class MainViewModel() : ViewModel() {
     fun getUser(name: String) {
         viewModelScope.launch {
             userLiveData.value = userRepository.getUser(name)
+            //retorfit会自动给耗时操作分配一个io的协程
         }
     }
 
