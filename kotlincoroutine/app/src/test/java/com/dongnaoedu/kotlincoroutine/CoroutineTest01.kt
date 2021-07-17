@@ -172,8 +172,10 @@ class CoroutineTest01 {
     @Test
     fun `test start mode default`()= runBlocking {
         //DEFAULT：协程创建后，立即开始调度，在调度前如果协程被取消，其将直接进入取消响应的状态。
+        //立刻调度 不等于立刻执行 （比如滴滴打车 下班高峰期不会立刻打到车）
         val job = launch(start = CoroutineStart.DEFAULT) {
             delay(10000)
+            //如果在
             println("Job finished.")//如果没有job.cancel()则10秒后打印
         }
         delay(1000)
