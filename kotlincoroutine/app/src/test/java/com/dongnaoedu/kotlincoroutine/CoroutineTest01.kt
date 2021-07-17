@@ -96,12 +96,13 @@ class CoroutineTest01 {
     //不使用async
     @Test
     fun `test sync`() = runBlocking<Unit> {
-        val time = measureTimeMillis {
+        val time = measureTimeMillis {//获得这段代码执行的时间（毫秒）
             val one = doOne()
             val two = doTwo()
-            println("The result:${one + two}")
+            println("The result:${one + two}") //The result:39
         }
-        println("Completed in $time ms")
+        println("Completed in $time ms") //Completed in 2014 ms
+
     }
 
 
@@ -121,12 +122,19 @@ class CoroutineTest01 {
         val time = measureTimeMillis {
             val one = async { doOne() }
             val two = async { doTwo() }
-            //区别在哪里？
-            //val one = async { doOne() }.await()
-            //val two = async { doTwo() }.await()
-            println("The result:${one.await() + two.await()}")
+            println("The result:${one.await() + two.await()}") // The result:39
+
         }
-        println("Completed in $time ms")
+        println("Completed in $time ms") // Completed in 1080 ms
+
+
+        //区别在哪里？ 这样写没有起到缩短时间的作用
+//            val one = async { doOne() }.await()
+//            val two = async { doTwo() }.await()
+//            println("The result:${one+ two}")
+        //如果是  async { doOne() }.await() 和 async { doTwo() }.await()
+        //则打印 Completed in 2033 ms
+
     }
 
     //协程的启动模式
@@ -161,4 +169,14 @@ class CoroutineTest01 {
         }*/
     }
 
+    @Test
+    fun `test start mode default`()= runBlocking {
+        //DEFAULT：协程创建后，立即开始调度，在调度前如果协程被取消，其将直接进入取消响应的状态。
+        val job = launch(start = CoroutineStart.DEFAULT) {
+            delay(10000)
+            println("Job finished.")//如果没有job.cancel()则10秒后打印
+        }
+        delay(1000)
+        job.cancel()
+    }
 }
