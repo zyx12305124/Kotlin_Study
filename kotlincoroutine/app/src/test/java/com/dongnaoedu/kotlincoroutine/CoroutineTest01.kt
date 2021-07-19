@@ -141,7 +141,7 @@ class CoroutineTest01 {
     @Test
     fun `test start mode`() = runBlocking<Unit> {
         //DEFAULT：协程创建后，立即开始调度，在调度前如果协程被取消，其将直接进入取消响应的状态。
-        //ATOMIC：协程创建后，立即开始调度，协程执行到第一个挂起点之前不响应取消。
+        //ATOMIC（原子）：协程创建后，立即开始调度，协程执行到第一个挂起点之前不响应取消。
         //LAZY：只有协程被需要时，包括主动调用协程的start、join或者await等函数时才会开始调度，如果调度前就被取消，那么该协程将直接进入异常结束状态。
         //UNDISPATCHED：协程创建后立即在当前函数调用栈中执行，直到遇到第一个真正挂起的点。
         //能取消吗？
@@ -172,7 +172,7 @@ class CoroutineTest01 {
     @Test
     fun `test start mode default`()= runBlocking {
         //DEFAULT：协程创建后，立即开始调度，在调度前如果协程被取消，其将直接进入取消响应的状态。
-        //立刻调度 不等于立刻执行 （比如滴滴打车 下班高峰期不会立刻打到车）
+        //立刻调度 不等于立刻执行 （比如滴滴打车 下班高峰期不会立刻打到车 如果在打到车之前取消订单 则会取消调度车辆）
         val job = launch(start = CoroutineStart.DEFAULT) {
             delay(10000)
             //如果在
@@ -180,5 +180,53 @@ class CoroutineTest01 {
         }
         delay(1000)
         job.cancel()
+    }
+
+    @Test
+    fun `test start mode atomic`()= runBlocking {
+        //ATOMIC（原子）：协程创建后，立即开始调度，协程执行到第一个挂起点之前不响应取消。
+        val job = launch(start = CoroutineStart.ATOMIC) {
+            println("11")
+            println("22")
+            println("33")
+            delay(10000)
+            //如果在
+            println("Job finished.")
+        }
+        delay(1000)
+        job.cancel()
+        //打印11 22 33
+        //如果有job.cancel() 则不继续打印；如果没有job.cancel(),则10秒后打印Job finished.
+    }
+
+    @Test
+    fun `test start mode lazy`()= runBlocking<Unit> {
+        // LAZY(惰性启动)：只有协程被需要时，包括主动调用协程的start、join或者await等函数时才会开始调度
+        // 如果调度前就被取消，那么该协程将直接进入异常结束状态。
+        val job = async (start = CoroutineStart.LAZY) {
+            29
+            println("LAZY 29")
+        }
+        //执行一些操作
+        println("11")
+        println("22")
+        println("33")
+//        job.cancel()
+        //再启动
+        job.start()
+    }
+
+    @Test
+    fun `test start mode undispatched`()= runBlocking<Unit> {
+        //UNDISPATCHED：协程创建后立即在当前函数调用栈中执行，直到遇到第一个真正挂起的点。
+        val job = launch(context = Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
+            println("thread:"+Thread.currentThread().name)//thread:main @coroutine#2
+            //协程创建后【立即】在【当前函数调用栈】中执行 runBlocking在主线程里面，DISPATCH是转发的意思，UNDISPATCHED就是不转发
+            //UNDISPATCHED是立即执行 ，而不是像上面三个等待调度，优先级很高
+        }
+
+        val job2 = launch(context = Dispatchers.IO, start = CoroutineStart.DEFAULT) {
+            println("thread:"+Thread.currentThread().name)//thread:DefaultDispatcher-worker-1 @coroutine#3
+        }
     }
 }
