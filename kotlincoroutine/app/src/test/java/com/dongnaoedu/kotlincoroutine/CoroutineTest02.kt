@@ -13,11 +13,14 @@ class CoroutineTest02 {
     //作用域构建器
     //runBlocking是常规函数，而coroutineScope是挂起函数。
     //它们看起来很类似，它们都会等待其协程体以及所有子协程结束。
+    //两者的区别 runBlocking是常规函数 coroutineScope是挂起函数
     //主要区别在于runBlocking方法会阻塞当前线程来等待，而coroutineScope只是挂起，会释放底层线程用于其他用途。
     @Test
     fun `test coroutine scope builder`() = runBlocking<Unit> {
         //一个协程失败了，所有其他兄弟协程也会被取消
-        coroutineScope {
+        coroutineScope {//coroutineScope就是一个协程的作用域的构建器
+
+            //启动两个子协程
             val job1 = launch {
                 delay(400)
                 println("job1 finished.")
@@ -25,8 +28,13 @@ class CoroutineTest02 {
             val job2 = launch {
                 delay(200)
                 println("job2 finished.")
-                throw IllegalArgumentException()
+//                throw IllegalArgumentException()//coroutineScope 只要有一个协程失败了，所有其他的兄弟协程也会被取消
+
             }
+            //coroutineScope 一定要等job1 job2这两个子协程执行完毕 这一整个作用域才算执行结束
+            //coroutineScope 和 runBlocking{} 很像 都是要等子协程执行完毕
+
+
         }
     }
 
@@ -37,7 +45,7 @@ class CoroutineTest02 {
         supervisorScope {
             val job1 = launch {
                 delay(400)
-                println("job1 finished.")
+                println("job1 finished.") //job2出问题 job1不会被影响到 这句还是会被打印
             }
             val job2 = launch {
                 delay(200)
