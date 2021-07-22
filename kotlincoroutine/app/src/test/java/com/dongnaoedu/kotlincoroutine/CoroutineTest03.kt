@@ -97,13 +97,13 @@ class CoroutineTest03 {
                 delay(1000)
                 println("job 1")
             } catch (e: Exception) {
-                e.printStackTrace()
+                e.printStackTrace() //打印 取消 llll   CancellationException$1
             }
         }
         delay(100)
         //在调用 .cancel 时您可以传入一个 CancellationException 实例来提供更多关于本次取消的详细信息
         //如果您不构建新的 CancellationException 实例将其作为参数传入的话，会创建一个默认的 CancellationException
-        job1.cancel(CancellationException("取消"))
+        job1.cancel(CancellationException("取消 llll"))
         job1.join() //等待job1执行完
         //job1.cancelAndJoin()
     }
