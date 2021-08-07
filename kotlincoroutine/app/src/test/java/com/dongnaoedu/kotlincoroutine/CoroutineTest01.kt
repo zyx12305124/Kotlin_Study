@@ -22,7 +22,7 @@ class CoroutineTest01 {
     //launch与async构建器都用来启动新协程
     @Test
     fun `test coroutine builder`() = runBlocking<Unit> {
-        //1.launch返回一个Job并且不附带任何结果值
+        //1.launch返回一个Job并且不附带任何结果值 （区别 一个有返回值一个没有
         //2.async返回一个Deferred，Deferred也是一个Job，可以使用.await()在一个延期的值上得到它的最终结果
         val job1 = launch {
             delay(200)
@@ -44,7 +44,7 @@ class CoroutineTest01 {
             println("One")
         }
         //等job1执行完毕再启动
-        job1.join()  //job1执行完毕之后 再指定job2 job3
+        job1.join()  //job1执行完毕之后 再执行job2 job3
         val job2 = launch {
             delay(50)
             println("two")
@@ -77,6 +77,7 @@ class CoroutineTest01 {
         }
         //等job1执行完毕再启动
         job1.await()
+//        job1.join()
         val job2 = launch {
             delay(50)
             println("two")
