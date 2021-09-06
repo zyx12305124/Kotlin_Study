@@ -37,6 +37,7 @@ class CoroutineTest04 {
 
 
     //with 函数是什么意思 不懂
+    //repeat 函数是什么意思 不懂
     //contract 函数是什么意思 不懂
     //use函数：该函数只能被实现了Closeable的对象使用，程序结束的时候会自动调用close方法，适合文件对象
     @Test
@@ -68,6 +69,7 @@ class CoroutineTest04 {
     }
 
 
+    //不能被取消的任务
     //处于取消中状态的协程不能够挂起（运行不能取消的代码）
     //当协程被取消后需要调用挂起函数，我们需要将清理任务的代码放置于 NonCancellable CoroutineContext 中。
     //这样会挂起运行中的代码，并保持协程的取消中状态直到任务处理完成。
@@ -80,6 +82,11 @@ class CoroutineTest04 {
                     delay(500L)
                 }
             } finally {
+                //在finally中如果有挂起任务（通过请求网络去释放资源） 这时候是不能被取消的
+                //或者是常驻任务 也不能被取消
+                //哪些任务不能被取消？https://zhuanlan.zhihu.com/p/265930967
+                //不能被取消的任务的指定方式 之一 withContext(NonCancellable) {}
+
                 withContext(NonCancellable) {
                     println("job: I'm running finally")
                     delay(1000L)
