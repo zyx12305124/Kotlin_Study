@@ -5,11 +5,6 @@ import org.junit.Test
 import java.io.IOException
 import kotlin.AssertionError
 
-/**
- *
- * @author ningchuanqi
- * @version V1.0
- */
 class CoroutineTest01 {
 
     @Test
@@ -60,9 +55,9 @@ class CoroutineTest01 {
         job2.join()
     }
 
-
     @Test
     fun `test CoroutineContext extend2`() = runBlocking<Unit> {
+        //CoroutineExceptionHandler协程的异常处理器
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, exception -> //用不到的参数用下划线代替，赋值的时候会跳过下划线的参数，这样可以节省内存
             println("Caught $exception")
         }
@@ -78,56 +73,119 @@ class CoroutineTest01 {
     @Test
     fun `test exception propagation 0`() = runBlocking<Unit> {
         val job = GlobalScope.launch {
-            try {
-                throw IndexOutOfBoundsException()
-            } catch (e: Exception) {
-                println("Caught IndexOutOfBoundsException")
-            }
+            throw IndexOutOfBoundsException()
+            //用launch构建，异常会在它发生的第一时间被抛出  同理actor
         }
         job.join()
 
         val deferred = GlobalScope.async {
             println("async")
             throw ArithmeticException()
+            //用async构建协程，则依赖用户来最终消费异常 同理produce
         }
         deferred.await()
     }
 
     @Test
-    fun `test exception propagation`() = runBlocking<Unit> {
+    fun `test exception propagation 1`() = runBlocking<Unit> {
         val job = GlobalScope.launch {
-            try {
+            try{
                 throw IndexOutOfBoundsException()
-            } catch (e: Exception) {
+            } catch (e:Exception){
                 println("Caught IndexOutOfBoundsException")
             }
         }
         job.join()
 
-        val deferred = GlobalScope.async {
-            println("async")
-            throw ArithmeticException()
-        }
+//        val deferred = GlobalScope.async {
+//            println("async")
+//            throw ArithmeticException()
+//        }
+//        deferred.await()
+    }
 
-        /*try {
-            deferred.await()
+    //根协程 异常的传递
+    @Test
+    fun `test exception propagation`() = runBlocking<Unit> {
+        val job = GlobalScope.launch {
+//            try {
+                throw IndexOutOfBoundsException()
+//            } catch (e: Exception) {
+//                println("Caught IndexOutOfBoundsException")
+//            }
+        }
+//        try {
+            job.join()
+//        } catch (e: Exception) {
+//            println("Caught IndexOutOfBoundsException 222")
+//        }
+
+        val deferred = GlobalScope.async {
+                println("async")
+                throw ArithmeticException()
+        }
+        /**
+        try {
+            deferred.await() //用async启动的协程 在调用await的时候可以捕获到异常
         }catch (e:Exception){
-            println("Caught ArithmeticException")
-        }*/
+            println("Caught ArithmeticException 222")
+        }
+         这句注掉不会抛出异常 因为只有用户调用的时候才会抛出异常
+         */
 
         delay(1000)
     }
 
-
+    //非根协程（协程的子协程） 异常的传递
+    //非根协程所创建的协程中，产生的异常总是会被传播
     @Test
     fun `test exception propagation2`() = runBlocking<Unit> {
         val scope = CoroutineScope(Job())
         val job = scope.launch {
             async {
-                throw IllegalArgumentException()
+                throw IllegalArgumentException()//非根协程的async直接就可以引发异常，不需要调用await()
             }
         }
         job.join()
+    }
+
+    /**
+     * 异常的传播特性（传播的过程）
+     * 当一个协程由于一个异常运行失败时，它会传播这个异常并传递给它的父级，接下来，父级会进行一下几步操作：
+     * 1.取消它自己的子级
+     * 2.取消它自己
+     * 3.讲异常传播并传递给它的父级
+     */
+
+
+    /**
+     * 像上面这种 一个协程失败，其他都取消了也不太好，如何打破异常的传播特性呢？
+     * 使用SupervisorJob时，一个子协程失败不会影响到其他子协程。
+     * supervisorJob不会传播异常给它的父级，它会让子协程自己处理异常
+     */
+    @Test
+    fun `test SupervisorJob 0`() = runBlocking<Unit> {
+        val supervisor = CoroutineScope(SupervisorJob())
+//        val supervisor = CoroutineScope(Job())
+        val job1 = supervisor.launch {
+            delay(100)
+            println("child 1")
+            throw IllegalArgumentException()
+        }
+
+        val job2 = supervisor.launch {
+            try {
+                delay(Long.MAX_VALUE)
+//                delay(10000)
+            } finally {
+                println("child 2 finished.")
+                //把协程里的参数换成Job() child1 child2都会打印 则表示 child1的异常影响到了child2的执行
+                //如果是supervisorJob()则child2不会打印 则表示child2不受到child1的影响
+                //使用supervisorJob（）一个协程失败，不影响其他的兄弟协程
+            }
+        }
+
+         joinAll(job1, job2)
     }
 
     @Test
@@ -148,7 +206,7 @@ class CoroutineTest01 {
         }
 
         delay(200)
-        supervisor.cancel()
+        supervisor.cancel()//这里如果整个作用域被取消 则job1job2都被取消
         joinAll(job1, job2)
     }
 
@@ -232,7 +290,6 @@ class CoroutineTest01 {
         job.join()
     }
 
-
     @Test
     fun `test cancel and exception`() = runBlocking<Unit> {
         val job = launch {
@@ -251,7 +308,6 @@ class CoroutineTest01 {
         }
         job.join()
     }
-
 
     @Test
     fun `test cancel and exception2`() = runBlocking<Unit> {
@@ -281,7 +337,6 @@ class CoroutineTest01 {
         job.join()
     }
 
-
     @Test
     fun `test exception aggregation`() = runBlocking<Unit> {
         val handler = CoroutineExceptionHandler { _, exception ->
@@ -310,7 +365,6 @@ class CoroutineTest01 {
                 throw IOException()  //1
             }
         }
-
         job.join()
     }
 
