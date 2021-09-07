@@ -210,6 +210,7 @@ class CoroutineTest01 {
         joinAll(job1, job2)
     }
 
+    //使用supervisorScope 也可以达到和supervisorJob同样的效果
     @Test
     fun `test supervisorScope`() = runBlocking<Unit> {
         supervisorScope {
@@ -221,10 +222,13 @@ class CoroutineTest01 {
 
             try {
                 delay(Long.MAX_VALUE)
+//                delay(10000)
             } finally {
                 println("child 2 finished.")
             }
+            //打印结果只打印child1 ，child2不打印 表示child2上面的delay没有受到child1的影响
         }
+        //同样的如果作用域自身失败的时候，所有的子作业都会被取消
     }
 
     @Test
@@ -238,12 +242,24 @@ class CoroutineTest01 {
                     println("The child is cancelled")
                 }
             }
-            yield()
+            yield()//出让线程执行权
             println("Throwing an exception from the scope")
             throw AssertionError()
+            //打印结果
+            /**
+            The child is sleeping
+            Throwing an exception from the scope
+            The child is cancelled
+             */
         }
     }
 
+    /**
+     * 使用CoroutineExceptionHandler来对协程的异常进行捕获。
+     * 但不是所有的协程异常都会被捕获到，满足以下条件时，异常就会被捕获：
+     * 1.时机：异常是自动抛出异常的协程所抛出的，使用launch而不是async时
+     * 2.位置：在CoroutineScope的CoroutineContext中或在一个根协程（CoroutineScope或者SuperVisorScope的直接子协程）中。
+     */
     @Test
     fun `test CoroutineExceptionHandler`() = runBlocking<Unit> {
         val handler = CoroutineExceptionHandler { _, exception ->
