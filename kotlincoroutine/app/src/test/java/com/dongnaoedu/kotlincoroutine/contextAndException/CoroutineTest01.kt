@@ -267,11 +267,11 @@ class CoroutineTest01 {
         }
 
         val job = GlobalScope.launch(handler) {
-            throw AssertionError()
+            throw AssertionError() //这个异常会被handler捕获到
         }
 
         val deferred = GlobalScope.async(handler) {
-            throw ArithmeticException()
+            throw ArithmeticException()//这个异常不会被handler捕获到
         }
 
         job.join()
@@ -286,7 +286,8 @@ class CoroutineTest01 {
         val scope = CoroutineScope(Job())
         val job = scope.launch(handler) {
             launch {
-                throw IllegalArgumentException()
+                throw IllegalArgumentException()//这个异常能被handler捕获到
+                //为什么能被捕获到，因为根据协程异常的传播特性，协程作用域指定job为Job()的，子协程的异常会被传播给父协程
             }
         }
         job.join()
@@ -300,7 +301,8 @@ class CoroutineTest01 {
         val scope = CoroutineScope(Job())
         val job = scope.launch {
             launch(handler) {
-                throw IllegalArgumentException()
+                throw IllegalArgumentException()//handler拿下来，这种情况下这个异常不会被handler捕获到
+                //这个异常处理器（就是这里的handler）不能在内部协程传入，要在根协程处传入，这是异常处理的规则
             }
         }
         job.join()
